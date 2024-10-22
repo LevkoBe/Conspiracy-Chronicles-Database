@@ -11,33 +11,58 @@ CORPORATION_RECORD_COUNT = get_table_record_count('Corporations')
 EVENT_RECORD_COUNT = get_table_record_count('Events')
 NEWS_ARTICLE_RECORD_COUNT = get_table_record_count('NewsArticles')
 
+A_FEW = 5
 fake = Faker()
 
-def get_random_id(max_id):
-    return random.randint(1, max_id) if max_id > 0 else None
+used_country_pairs = set()      # Track (theory_id, country_id)     (many-to-many)
+used_corporation_pairs = set()  # Track (theory_id, corporation_id) (many-to-many)
+used_article_pairs = set()      # Track (theory_id, article_id)     (one-to-many)
 
 def insert_conspiracy_theory():
-    """Generate and insert a new conspiracy theory into the ConspiracyTheories table."""
-    
-    country_id = get_random_id(COUNTRY_RECORD_COUNT)
-    corporation_id = get_random_id(CORPORATION_RECORD_COUNT)
-    event_id = get_random_id(EVENT_RECORD_COUNT)
-    article_id = get_random_id(NEWS_ARTICLE_RECORD_COUNT)
-    
+    """Insert a new conspiracy theory and link it to countries, corporations, and articles."""
     title = fake.catch_phrase()
     description = fake.paragraph(nb_sentences=5)
-    creation_date = fake.date_this_century()
+    creation_date = fake.date()
+    event_id = random.randint(1, EVENT_RECORD_COUNT)
 
     cursor.execute("""
-        INSERT INTO ConspiracyTheories (title, description, creation_date, country_id, corporation_id, event_id, article_id)
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-    """, (title, description, creation_date, country_id, corporation_id, event_id, article_id))
+        INSERT INTO ConspiracyTheories (title, description, creation_date, event_id)
+        VALUES (%s, %s, %s, %s)
+    """, (title, description, creation_date, event_id))
+    theory_id = cursor.lastrowid
+
+    for _ in range(random.randint(1, A_FEW)):
+        country_id = random.randint(1, COUNTRY_RECORD_COUNT)
+        if country_id and (theory_id, country_id) not in used_country_pairs:
+            cursor.execute("""
+                INSERT INTO TheoryCountries (theory_id, country_id)
+                VALUES (%s, %s)
+            """, (theory_id, country_id))
+            used_country_pairs.add((theory_id, country_id))
+
+    for _ in range(random.randint(1, A_FEW)):
+        corporation_id = random.randint(1, CORPORATION_RECORD_COUNT)
+        if corporation_id and (theory_id, corporation_id) not in used_corporation_pairs:
+            cursor.execute("""
+                INSERT INTO TheoryCorporations (theory_id, corporation_id)
+                VALUES (%s, %s)
+            """, (theory_id, corporation_id))
+            used_corporation_pairs.add((theory_id, corporation_id))
+
+    for _ in range(random.randint(1, A_FEW)):
+        article_id = random.randint(1, NEWS_ARTICLE_RECORD_COUNT)
+        if article_id and theory_id not in used_article_pairs:
+            cursor.execute("""
+                INSERT INTO TheoryArticles (theory_id, article_id)
+                VALUES (%s, %s)
+            """, (theory_id, article_id))
+            used_article_pairs.add(theory_id)
 
     conn.commit()
-    # print(f"Inserted theory: {title} with country_id {country_id}, corporation_id {corporation_id}, event_id {event_id}, article_id {article_id}")
 
 def generate_conspiracy_theories(count=10):
+    """Generate and insert a specified number of conspiracy theories."""
     for _ in range(count):
         insert_conspiracy_theory()
 
-generate_conspiracy_theories(880)
+generate_conspiracy_theories(2000)

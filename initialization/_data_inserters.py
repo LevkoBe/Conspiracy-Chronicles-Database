@@ -1,7 +1,7 @@
 import csv
-from initialization._database_config import conn, cursor
-from initialization._data_parsers import handle_numeric_value, parse_scientific_notation, parse_event_date
-from initialization._db_helpers import get_country_id
+from _database_config import conn, cursor
+from _data_parsers import handle_numeric_value, parse_scientific_notation, parse_event_date
+from _db_helpers import get_country_id
 
 def insert_countries_from_csv(csv_file):
     """Insert countries from CSV into the Countries table."""
@@ -28,6 +28,12 @@ def insert_corporations_from_csv(csv_file):
             country_id = get_country_id(row.get('company origin').strip())
             if country_id is None:
                 continue
+
+            cursor.execute("SELECT COUNT(*) FROM Corporations WHERE name = %s", (row.get('company').strip(),))
+            if cursor.fetchone()[0] > 0:
+                print(f"Skipping duplicate corporation: {row.get('company').strip()}")
+                continue
+            
             cursor.execute("""
                 INSERT INTO Corporations (name, stock_symbol, total_assets, share_price, country_id)
                 VALUES (%s, %s, %s, %s, %s)
