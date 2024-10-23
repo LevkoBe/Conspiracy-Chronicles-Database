@@ -3,7 +3,7 @@ CREATE TABLE Countries (
     country_name VARCHAR(255) NOT NULL UNIQUE,
     region VARCHAR(255),
     population INT CHECK (population >= 0),                         -- Non-negative population
-    gdp_per_capita INT CHECK (gdp_per_capita >= 0),                 -- Non-negative GDP per capita
+    gdp_per_capita INT CHECK (gdp_per_capita >= 0),                 -- Non-negative GDP per capita ($)
     literacy DECIMAL(5,2) CHECK (literacy >= 0 AND literacy <= 100) -- Literacy percentage
 );
 
@@ -42,6 +42,7 @@ CREATE TABLE ConspiracyTheories (
     description TEXT NOT NULL,
     creation_date DATE NOT NULL,
     event_id INT,
+    -- the only FK, because the relationship is 1-to-1, unlike to other tables
     FOREIGN KEY (event_id) REFERENCES Events(event_id) ON DELETE SET NULL
 );
 
